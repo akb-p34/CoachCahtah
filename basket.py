@@ -20,13 +20,20 @@ while(cap.isOpened()):
         # Threshold the HSV image to get only orange colors
         mask = cv2.inRange(hsv_frame, lower_orange, upper_orange)
 
-        # Bitwise-AND mask and original frame
-        res = cv2.bitwise_and(frame, frame, mask=mask)
+        # Find contours in the mask
+        contours, _ = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find the largest contour, which should be the ball
+        if len(contours) > 0:
+            largest_contour = max(contours, key=cv2.contourArea)
+            ((x, y), radius) = cv2.minEnclosingCircle(largest_contour)
+            center = (int(x), int(y))
+
+            # Draw a circle around the detected ball
+            cv2.circle(frame, center, int(radius), (0, 255, 0), 2)
 
         # Display the resulting frame
         cv2.imshow('Frame', frame)
-        cv2.imshow('Mask', mask)
-        cv2.imshow('Result', res)
 
         # Define 'q' as the exit button
         if cv2.waitKey(25) & 0xFF == ord('q'):
