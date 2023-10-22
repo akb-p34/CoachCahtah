@@ -4,11 +4,13 @@ import numpy as np
 # Create a VideoCapture object to read the video
 cap = cv2.VideoCapture('IMG_3627.mov')
 
+# Initialize the list of ball positions
+ball_positions = []
+
 # Loop until the end of the video
 while(cap.isOpened()):
     # Capture frame-by-frame
     ret, frame = cap.read()
-    
     if ret == True:
         # Convert from BGR to HSV color space
         hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -29,8 +31,15 @@ while(cap.isOpened()):
             ((x, y), radius) = cv2.minEnclosingCircle(largest_contour)
             center = (int(x), int(y))
 
+            # Append the center to the ball_positions list
+            ball_positions.append(center)
+
             # Draw a circle around the detected ball
             cv2.circle(frame, center, int(radius), (0, 255, 0), 2)
+
+            # Draw a line connecting the ball positions
+            for i in range(1, len(ball_positions)):
+                cv2.line(frame, ball_positions[i - 1], ball_positions[i], (255, 0, 0), 2)
 
         # Display the resulting frame
         cv2.imshow('Frame', frame)
