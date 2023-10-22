@@ -1,10 +1,11 @@
 import cv2
+import numpy as np
 
-# Load a pre-trained cascade classifier for detecting a person
-person_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fullbody.xml')
+# Create a background subtractor object
+fgbg = cv2.createBackgroundSubtractorMOG2()
 
 # Load the video
-cap = cv2.VideoCapture('IMG_2659.mp4')
+cap = cv2.VideoCapture('IMG_3627.mov')
 
 while True:
     ret, frame = cap.read()
@@ -12,31 +13,28 @@ while True:
     if not ret:
         break
 
-    # Convert the frame to grayscale for object detection
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # Apply background subtraction
+    fgmask = fgbg.apply(frame)
 
-    # Detect people in the frame
-    people = person_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    # Denoise the mask to reduce false positives
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
 
-    for (x, y, w, h) in people:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    # Draw contours around detected moving objects
+    contours, _ = cv2.findContours(fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        # Calculate contour area
+        area = cv2.contourArea(cnt)
 
-        # Check if the person is in a shooting position
-        if y < frame.shape[0] // 2:
-            feedback = "Your shooting formation looks good."
-        else:
-            feedback = "Adjust your position for a better shot."
+        # Filter out small contours (likely shadows)
+        if area > 100:  # Adjust this threshold as needed
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-        cv2.putText(frame, feedback, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
-    # Display the frame with feedback
+    # Display the frame with the contours around moving objects
     cv2.imshow('Basketball Coaching App', frame)
 
-    if cv2.waitKey(1) & 0xFF == 27:  # Press 'Esc' to exit
+    if cv2.waitKey(1) & 0xFF == 27: # Press 'Esc' to exit
         break
 
 cap.release()
 cv2.destroyAllWindows()
-
-
-
