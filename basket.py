@@ -2,22 +2,26 @@ import cv2
 import numpy as np
 
 # Create a VideoCapture object to read the video
-cap = cv2.VideoCapture('IMG_3627.mov')
+cap = cv2.VideoCapture('MadeShot.mov')
+#cap = cv2.VideoCapture('MissedShot.mov')
 
 # Initialize the list of ball positions
 ball_positions = []
 
-# Define the boxes for scoring
-x1=1595
-y1=931
-x2=1765
-y2=930
-x3=1625
-y3=1125
-x4=1725
-y4=1100
-hoop_box = (x1, y1, x2, y2)  # Define the coordinates for the hoop box
-bottom_box = (x3, y3, x4, y4)  # Define the coordinates for the bottom box
+# Initialize the box conditions
+touchHoopBox = False
+touchBottomBox = False
+
+# Define the coordinates for the boxes for scoring
+# Hoop Box Coordinates
+x1=970; y1=870
+x2=1070; y2=885
+# Bottom Box Coordinates
+x3=1000; y3=970
+x4=1060 ;y4=985
+
+hoop_box = (x1, y1, x2, y2)  # Coordinates for the hoop box
+bottom_box = (x3, y3, x4, y4)  # Coordinates for the bottom box
 
 # Loop until the end of the video
 while(cap.isOpened()):
@@ -31,21 +35,11 @@ while(cap.isOpened()):
         lower_orange = np.array([0, 60, 165])
         upper_orange = np.array([5, 255, 255])
 
-        # Define the range of red color in HSV (for the hoop)
-        lower_red = np.array([157,105,110])
-        upper_red = np.array([215,72,73])
-
         # Threshold the HSV image to get only orange colors (for the ball)
         mask_orange = cv2.inRange(hsv_frame, lower_orange, upper_orange)
 
-        # Threshold the HSV image to get only green colors (for the hoop)
-        mask_green = cv2.inRange(hsv_frame, lower_red, upper_red)
-
         # Find contours in the mask (for the ball)
         contours_orange, _ = cv2.findContours(mask_orange.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Find contours in the mask (for the hoop)
-        contours_green, _ = cv2.findContours(mask_green.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Find the largest contour, which should be the ball
         if len(contours_orange) > 0:
@@ -53,11 +47,21 @@ while(cap.isOpened()):
             ((x, y), radius) = cv2.minEnclosingCircle(largest_contour_orange)
             center = (int(x), int(y))
 
+            # Draw a circle around the detected ball
+            cv2.circle(frame, center, int(radius), (0, 255, 0), 2)
+
             # Append the center to the ball_positions list
             ball_positions.append(center)
 
-            # Draw a circle around the detected ball
-            cv2.circle(frame, center, int(radius), (0, 255, 0), 2)
+            # Draw a line connecting the ball positions
+            for i in range(1, len(ball_positions)):
+                cv2.line(frame, ball_positions[i - 1], ball_positions[i], (255, 0, 0), 2)
+
+            # Check if the ball is in the hoop_box or bottom_box
+            if hoop_box[0] <= center[0] <= hoop_box[2] and hoop_box[1] <= center[1] <= hoop_box[3]:
+                touchHoopBox = True
+            elif bottom_box[0] <= center[0] <= bottom_box[2] and bottom_box[1] <= center[1] <= bottom_box[3]:
+                touchBottomBox = True
 
         # Draw the scoring boxes
         cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Hoop box
@@ -71,6 +75,11 @@ while(cap.isOpened()):
             break
     else:
         break
+
+if (touchBottomBox and touchBottomBox) == True:
+    print("SCHMONEY")
+else:
+    print("BRICK")
 
 # Release the video capture object
 cap.release()
